@@ -1,0 +1,105 @@
+\chapter{L'algoritmo ECDSA}
+
+Nonostante l'algoritmo DSA sia una soluzione solida nel campo delle firme digitale, con l'evoluzione tecnologica è stato possibile creare algoritmi, più semplici e performanti, sfruttando  ad esempio la crittografia basata curve ellittiche. Al giorno d'oggi è preferibile una soluzione che comprenda l'utilizzo delle curve ellittiche, in quanto comportano la creazione di chiavi e conseguentemente firme più corte, oltre a livelli di sicurezza più alti.
+
+\section{Funzionamento}
+
+ECDSA è un adattamento del classico DSA, con la differenza che, dal lato matematico, si fa affidamento ai gruppi ciclici di curve ellittiche su campi finiti e sulla complessità computazionale del problema ECLDP(elliptic-curve discrete logarithm problem). Queste curve sono descritte dai loro parametri, definiti da precisi standard crittografici (ad esempio RFC 5693) e sono:
+\begin{itemize}
+	\item il punto generatore $G$, utilizzato per la moltiplicazione scalare sulla curva, si tratta di moltiplicare un intero per un punto della curva ellittica;
+	\item ordine n dei sottogruppi dei punti della curva, generati da G, che definisce la lunghezza delle chiavi private (ad esempio secp256k1 ha 256 bit di chiave).
+\end{itemize}
+
+\subsection{Generazione di chiavi}
+
+La coppia di chiavi che viene generata dall'algoritmo in questione è composta da una chiave privata (valore intero random che rientra nell'intervallo da $0$ a $n-1$) ed una pubblica (punto della curva ellittiva), che si ottiene moltiplicando la chiave privata per il punto generatore $G$. 
+In python l'implementazione, che sfrutta una tecnologia chiamata pycoin, risulta la seguente:
+
+
+\begin{lstlisting}
+from pycoin.ecdsa import generator_secp256k1, sign, verify
+import hashlib, secrets
+
+privateKey = secrets.randbelow(generator_secp256k1.order())
+publicKey = (generator_secp256k1 * privateKey).pair()	
+
+\end{lstlisting}
+
+\newpage
+
+\subsection{Firma}
+ 
+La firma viene generata prendendo in input un messaggio $m$ ed una chiave privata $privateKey$, restituisce in output la firma $f$.
+
+\begin{center}
+	$f(m, privateKey) \rightarrow \{r, f\}$
+\end{center}
+
+Il funzionamento può essere semplificato attraverso i seguenti passaggi (si consideri che una implementazione reale è molto più modulare, però difficile da comprendere):
+\begin{itemize}
+	\item $h = hash(m)$  $\rightarrow$ come di consueto, il primo passaggio consiste nell'effettuare lo hashing del messaggio da firmare;
+	\item $k = random()$ $\rightarrow$ si prosegue con la generazione di un valore casuale k, a meno che si consideri di sfruttare implementazioni alternative, è importante che non sia deterministico, in quanto potrebbe portare a delle vulnerabilità;
+	\item $R = k * G; r = R.x $ $\rightarrow$ successivamente si calcola r, ovvero il primo elemento della coppia che formerà la firma;
+	\item $f = k^{-1} \cdot (h + (r \cdot privateKey)) (mod n)$ $\rightarrow$ infine, si calcola la signature proof, ovvero la prova di firma.
+\end{itemize}
+
+Terminati questi passaggi si otterrà la firma, che verrà ritornata come coppia $\{r, f\}$.
+
+\subsubsection{Dimostrazione teorica}
+
+Il processo di "firma della firma", codifica la coordinata $x$ di un punto random $R$ attraverso le trasformazioni di curve ellittiche. Dunque la chiave privata e il messaggio hashato permettono di ottenere f, che è stata già introdotta come la "prova di firma" (in inglese signature proof), che è la prova che il firmatario conosce la chiave privata. La firma $\{r, s\}$ non può rivelare la chiave privata per via della difficoltà del problema ECDLP.
+
+\subsubsection{Implementazione in python}
+
+Il metodo sottostante permette di effettuare la firma dato un messaggio (in chiaro), della quale effettuerà lo hashing attraverso SHA3-256. 
+Il secondo argomento richiesto è la chiave privata secp256k1, che servirà a calcolare la firma $\{r, s\}$ come una coppia di interi di 256 bit. 
+
+\begin{lstlisting}
+def signECDSAsecp256k1(msg, privKey):
+	def sha3_256Hash():
+		hashBytes = hashlib.sha3_256(msg.encode("utf8")).digest()
+		return int.from_bytes(hashBytes, byteorder="big")
+	msgHash = sha3_256Hash(msg)
+	signature = sign(generator_secp256k1, privKey, msgHash)
+	return signature
+
+signature = signECDSAsecp256k1(msg, privKey)
+\end{lstlisting}
+
+\newpage
+
+\section{Verifica}
+
+Come di consueto, è necessario che la firma venga verificata, l'algoritmo richiede in input il messaggio firmato, la firma $\{r, s\}$ e la chiave pubblica (del firmatario). Una volta ottenuti, si effettua la verifica, che può dare esito positivo (firma verificata) o negativo (firma non verificata). Il funzionamento può essere semplificato attraverso i seguenti passaggi.
+
+\begin{itemize}
+	\item $hash = h(m)$ $\rightarrow$ il primo passaggio richiede lo hashing del messaggio, la funzione hash è la stessa utilizzata nella fase di firma;
+	\item $f_{inv} = f^{-1} \: mod \: n$ $\rightarrow$ successivamente viene calcolato l'inverso della firma, con modulo n;
+	\item $R' = (h \cdot f_{inv}) \cdot G + (r \cdot f_{inv}) \cdot publicKey$ $\rightarrow$ la formula non fa altro che recuperare il punto random utilizzato durante la firma, in particolare ne è stata sfruttata la coordinata x;
+	\item $R.x \: =? \: r$ $\rightarrow$ infine si calcola il risultando confrontando $R.x$ e $r$.
+\end{itemize}
+
+\subsubsection{Dimostrazione teorica}
+
+Nella fase di verifica della firma, viene decodificato $f$, ottenendo il punto $R$ (trovato precedentemente) sfruttando la chiave pubblica e il messaggio hashato $h(m)$, dopodiché viene effettuato il confronto fra: $R.x$ e $r$. 
+
+\subsubsection{Implementazione in python}
+
+Il metodo sottostante prende in input un messaggio, una firma $\{r, s\}$ e infine una chiave pubblica a 256, in funzione di questi elementi verifica che la firma sia valida o meno. Importante notare che l'algoritmo di hashing è lo stesso utilizzato durante la fase di firma, condizione necessaria per il corretto funzionamento dell'algoritmo.
+
+\begin{lstlisting}
+def verifyECDSAsecp256k1(msg, signature, pubKey):
+	def sha3_256Hash(msg):
+		hashBytes = hashlib.sha3_256(msg.encode("utf8")).digest()
+		return int.from_bytes(hashBytes, byteorder="big")
+	msgHash = sha3_256Hash(msg)
+	valid = verify(generator_secp256k1, pubKey, msgHash, signature)
+	return valid
+	
+valid = verifyECDSAsecp256k1(msg, signature, pubKey) #ritorna true
+
+msg = 'messaggio modificato'
+
+valid = verifyECDSAsecp256k1(msg, signature, pubKey) #ritorna false
+\end{lstlisting}
+

@@ -1,0 +1,115 @@
+\chapter{L'algoritmo DSA}
+
+DSA, meglio noto come digital signature alghoritm, è un vero e proprio standard, crittograficamente sicuro, per quanto riguarda la realizzazione (con tanto di meccanismo di verifica) delle firme digitali. Si tratta di una alternativa dell'algoritmo RSA, per via delle limitazioni di brevetto dell'appena citato metodo. La sicurezza di DSA si basa sul'inesistenza di un algoritmo efficiente per il calcolo del logaritmo discreto.
+
+\section{Funzionamento}
+
+\subsection{Firma}
+DSA esegue lo hashing di un messaggio, successivamente genera un intero random k e esegue la computazione della firma, che risulterà come una coppia di interi $\{r, s\}$, con $r$. Il valore $r$ viene ricavato dal numero randomico $k$, generato al passaggio precedente, mentre $s$ si ottiene sfruttando: 
+\begin{itemize}
+	\item $h(m) \rightarrow$ il messaggio hashato;
+	\item la chiave privata;
+	\item il valore randomico $k$.
+\end{itemize} 
+
+\subsection{Verifica}
+
+Il meccanismo di verifica sfrutta:
+\begin{itemize}
+	\item $h(m)$ $\rightarrow$ il messaggio hashato;
+	\item la chiave pubblica;
+	\item la firma ${r, s}$.
+\end{itemize}
+
+\newpage
+
+\subsection{Implementazione in pseudocodice dell'algoritmo, con relativa dimostrazione}
+
+\subsubsection{Generazione di chiavi}
+
+Il processo di generazione di chiavi è fondamentale nell'implementazione dell'algoritmo, in quanto i dati estratti da questa operazione formano a tutti gli effetti l'input per le fasi successive. 
+
+\begin{lstlisting}
+	#Viene scelto un numero primo q, di lunghezza d bit
+	q = getPrimeNumber(size = d)
+	#Viene scelto un numero primo lungo L bit, tale che p = q*i + 1, con i numero intero e L compreso nell'intervallo fra 512 e 1024 e divisibile per 64
+	i = getInteger()
+	p = getPrimeNumber(size = L
+				, predicate = (p == q * getRandomInteger() 
+				&& L.between(512, 1024) && L mod 64==0))
+	#Viene scelto h, in modo che sia compreso fra 1 e p - 1
+	h = getPrimeNumber(predicate = Integer.between(1, p - 1))
+	#Viene scelto g, che deve risultare maggiore di 1
+	g = pow(h, z) mod p 
+	#Calcolo la chiave pubblica, si tratta di un valore random compreso fra 0 e q
+	privateKey = random(predicate = x.between(0, q))
+	#calcolo la chiave privata, ottenuta da g elevato alla x modulo p
+	publicKey = pow(g, x) mod p
+\end{lstlisting}
+
+\subsubsection{Firma}
+
+Sfruttando i dati calcolati nel passo precedente, si procede con il calcolo della firma. In questo passaggio è opportuno fare molta attenzione durante la generazione del valore randomico k, in quanto apre alla possibilità di una potenziale vulnerabilità.
+In particolare, se due messaggi differenti, sono firmati usando lo stesso valore k e la stessa chiave privata, un hacker può effettuare la computazione della chiave privata del firmatario in maniera diretta.
+
+\begin{lstlisting}
+	#viene generato un numero casuale k, compreso fra 0 e q
+	k = random(predicate = k.between(0, q))
+	#si calcola r
+	r = (pow(g, k) mod p) mod q
+	#si calcola il messaggio hashato
+	m = getMessage()
+	hash = h(m)
+	#si calcola s
+	s = lambda x : (pow(k, -1) * (hash + x * r))
+	#la firma e' una tupla composta da r ed s
+	signature = (r, s)
+\end{lstlisting}
+
+\newpage
+
+\subsubsection{Verifica}
+
+Arrivati a questo punto, la firma è stata creata, non resta che verificarla. 
+
+\begin{lstlisting}
+	#Il primo controllo verifica che la firma abbia valori r ed s compresi nei range che consideriamo accettabili
+	predicate = r.isBetween(0, q) && s.isBetween(0, q)
+	if (!predicate) throw signatureNotValidException
+	#Dopodiche' verranno calcolati i valori w, u1 e u2
+	w = pow(s, -1)
+	u1, u2 = (hash() * w) mod q, (r * w) mod q
+	#Infine viene calcolato v, ovvero la funzione di verifica, che deve risultare uguale ad r, il primo valore della firma (r, s)
+	v = (pow(g, u1) * pow(g, u2) mod p) mod q
+	if (v == r) return Ok("valid signature") else throw signatureNotValidException 
+\end{lstlisting}
+
+\section{Implementazione in python dell'algoritmo}
+
+Come per rsa, ritengo opportuno includere nel capitolo una implementazione dell'algoritmo, in modo che sia possibile avere una idea (molto generale), dell'utilizzo pratico. Il linguaggio utilizzato è, anche in questo caso, python mentre la tecnologia sfruttata è pycryptodome. A differenza del capitolo precedente, non presenterò una trattazione teorica che contestualizzi il codice, in quanto nelle sezioni precedenti sono già stati spiegati i passaggi da effettuare.
+
+\begin{lstlisting}
+from Crypto.PublicKey import DSA
+from Crypto.Hash import SHA256
+from Crypto.Signature import DSS
+
+#Generazione della chiave
+
+msg = "Ciao, come stai?".encode()
+key = DSA.generate(size = 1024)
+publickey = key.publicKey()
+
+#Firma
+
+hash = SHA256.new(msg)
+signer = DSS.new(key, 'fips-186-3')
+signature = signer.sign(hash)
+
+#Verifica
+
+verifier = DSS.new(publickey, 'fips-186-3')
+return verifier.verify(hash, signature)
+
+\end{lstlisting}
+
+

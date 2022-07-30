@@ -1,0 +1,115 @@
+\chapter{Implementazione della firma digitale con RSA}
+
+In questo capitolo verrà mostrata l'implementazione di firma digitale, nella pratica, attraverso la generazione di chiavi RSA. Si tratta di uno script in python, che sfrutta la tecnologia pycryptodome per la generazione della chiave. L'esempio comprende creazione, istanziamento e verifica della firma. A livello teorico, il sistema di crittografia a chiave pubblica RSA, fornisce uno schema di firma digitale, composto da firma con conseguente verifica, basato sulle operazioni con modulo e sui logaritmi discreti e sul problema legato alla fattorizzazione degli interi.
+
+\section{Lo standards PKCS1}
+
+Il codice scritto all'interno del capitolo rispetterà lo standard PKCS 1, il primo di una famiglia di regole, chiamate Public-key Cryptography standards, che tutelano la corretta implementazione degli algoritmi RSA.
+Cita:
+\begin{itemize}
+	\item le proprietà che le chiavi devono possedere;
+	\item le operazioni consigliate per quanto riguarda la cifratura e decifratura;
+	\item gli schemi crittografici sicuri.
+\end{itemize} 
+
+\section{Generazione delle chiavi}
+
+L'algoritmo RSA è in grado di generare una coppia di chiavi delle dimensioni di 1024, 2048... fino a 16384 (supporta in realtà anche chiavi di dimensione più grande, però la performance diventa troppo scarsa per un eventuale uso pratico). La coppia di chiavi è formata da una chiave:
+\begin{itemize}
+	\item pubblica $\{n, e\}$;
+	\item privata $\{n, d\}$
+\end{itemize}
+Considerando che, i valori n e d sono generalmente interi di grandi dimensioni, mentre e è di dimensioni più piccole. \\ \\ \\ \\
+Per definizione la coppia di chiavi RSA rispetta la seguente proprietà: 
+\begin{center}
+	$(m^{e})^{d} \equiv ((m)^{d})^{e} \equiv m (mod \: n) \: \forall \: m \in [0..n)$
+\end{center} 
+Attraverso il metodo generate, fornito dalla libreria pycryptodome, si è in grado di generare agilmente la coppia di chiavi, pubblica e privata, sotto-forma di stringhe. Il metodo prende come argomento un intero, che rappresenta il numero di bit della chiave, per questo esempio è stata generata una coppia di chiavi a 128 byte, quindi 1024 bit.
+
+\begin{lstlisting}
+	from Crypto.PublicKey import RSA
+	from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
+	from Crypto.Hash import SHA256
+	import binascii
+	
+	keyPair = RSA.generate(bits=1024)
+	privateKey, publicKey = keys.privateKey(), keys.publicKey()
+	
+\end{lstlisting}
+
+\section{Firma del messaggio (mittente)}
+
+In seguito alla generazione delle chiavi RSA, si procede con la firma di un messaggio arbitrario sfruttando la chiave privata. La porzione di codice sottostante esegue i seguenti passaggi (considerando la chiave privata di esponente d):
+\begin{itemize}
+	\item $h(m)$ $\rightarrow$ hashing del messaggio, sfruttando l'algoritmo SHA-512;
+	\item $f = h^d (mod n)$ $\rightarrow$ generazione della firma, attraverso la chiave privata ottenuta precedentemente e creazione del crittogramma, che servirà poi al destinatario per effettuare la verifica.
+\end{itemize}
+Importante notare che, dovendo rientrare nel range imposto dalla proprietà vista precedentemente, la firma ottenuta $(f)$ è un intero la cui dimensione è rappresentata dall'intervallo $[0,..n)$
+
+\begin{lstlisting}
+	#funzione che esegue lo hash del messaggio
+	def hash(message):
+		return SHA256.new(msg)
+	
+	#funzione che effettua la firma
+	def sign(hash, keys):
+		signer = PKCS115_SigScheme(keyPair)
+		return signer.sign(hash)
+	
+	message = input("Insert the message that you'd like to sign")
+	signature = sign(hash(message))
+\end{lstlisting}
+
+\newpage
+
+\section{Verifica della firma}
+
+In questa fase si effettua la verifica della firma, dunque viene effettuata la decrittazione attraverso la chiave pubblica e comparando lo hash della firma con quello del messaggio originale.
+Per verificare dunque, una firma $f$, per un messaggio $m$, con la chiave pubblica di esponente $e$ è necessario:
+\begin{itemize}
+	\item $h(m) \rightarrow$ calcolare lo hash del messaggio;
+	\item $h' = f^e \: (mod \: n)$ $\rightarrow$ eseguire la decrittazione della firma;
+	\item $h' =? h$ $\rightarrow$ comparare lo hash della firma con quello del messaggio digitale.
+\end{itemize}
+
+Nel caso in cui la firma sia corretta, la seguente proprietà verrà rispettata
+
+\begin{center}
+	$h'=f^{e} \: (mod \: n) = (h^d)^e \: (mod \: n) = h$
+\end{center} 
+
+\begin{lstlisting}
+	#Se ritorna true -> firma valida, false -> firma non valida
+	
+	def verify(message):
+		hash = SHA256.new(msg)
+		verifier = PKCS115_SigScheme(publicKey)
+		return verifier.verify(hash, signature)
+	
+	message = input("Insert the message that you'd like to verify")
+	verify(message)
+	
+\end{lstlisting}
+
+
+
+\section{Tentativo di manomissione della firma}
+
+In questo ultimo passaggio, sarà nostra premura verificare che lo script funzioni correttamente, in particolare, seguiamo i seguenti passaggi:
+\begin{itemize}
+	\item definiamo un messaggio;
+	\item definiamo un elemento di disturbo, chiamato ruiner, che verrà poi concatenato al messaggio originale;
+	\item applichiamo il metodo di verifica sul messaggio originale;
+	\item solo dopo aver richiamato il metodo di verifica sul messaggio originale, lo riapplichiamo al messaggio disturbato, se viene ritornato il valore false, significa che lo script è funzionante.
+\end{itemize}
+
+\begin{lstlisting}
+	#Se ritorna true -> firma valida, false -> firma non valida
+	
+	message = "L'esclusione di Damian Lillard dall'all star game e' una vera e propria ingiustizia!"
+	ruiner = "!.d-"
+	
+	verify(message) #returns true 
+	message = message.concat(ruiner)
+	verify(message) #returns false
+\end{lstlisting}
