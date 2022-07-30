@@ -1,5 +1,22 @@
 \chapter{L'algoritmo EdDSA}
 
+L'algoritmo ECDSA osservato nel capitolo precedente è particolarmente efficace e garantisce un livello di sicurezza non indifferente, detto ciò, è possibile analizzare soluzioni, sotto certi punti di vista, migliori. Mi sto riferendo all'algoritmo EdDSA  (anch'esso basato sull'utilizzo di curve ellittiche), simile per molti aspetti all'ECDSA, con la differenza che, il primo è più semplice da comprendere e da implementare. Inoltre EdDSA, rispetto alle curve più popolari (ad esempio edwards448) è più performante rispetto al precedentemente citato (quindi dipende molto dalle curve usate e dalla specifica implementazione). Infine è importante sapere che, EdDSA non mette a disposizione una tecnica per il recupero della chiave pubblica della firma e del messaggio, a differenza del precedente. Le varianti più comuni sono lo Ed25519 ed Ed448, che sono descritte nello standard RFC 8032.
 
-L'algoritmo DSA, analizzato nel capitolo precedente, non è la migliore soluzione algoritmica conosciuta, in particolare, sfruttando la tecnologia nota come "curve ellittiche", è possibile costruire un algoritmo particolarmente performante, chiamato EdDSA.
-Inventato da Edwards, rappresenta una variante deterministica dell'algoritmo della firma di Schnorr. Dal lato pratico, EdDSA è più semplice, più sicuro e più veloce di ECDSA.
+\section{Generazione coppia di chiavi}
+
+Entrambe le versioni dell'algoritmo citate, generano chiavi e firme di piccole dimensioni, garantendo allo stesso tempo un alto livello di sicurezza. Supponendo che la curva ellittica che verrà utilizzata comprenda un punto generatore $G$ e un sottogruppo di ordine $q$, generato a partire da $G$, abbiamo che la coppia di chiavi è composta da:
+
+\begin{itemize}
+	\item chiave privata $\rightarrow$ intero che viene generato a partire da un seed casuale (di grandezza simile a $q$), che verrà hashato e alla quale verranno applicate diverse trasformazioni, che garantiscano che la chiave privata appartenga sempre allo stesso sottogruppo di punti di curva ellittica e che le chiavi abbiano sempre una lunghezza in bit simile (per proteggersi dagli attacchi di canale laterale basati sulla temporizzazione). La grandezza della chiave privata varia in funzione della variante dell'algoritmo sfruttata;
+	\item chiave pubblica $\rightarrow$ chiave privata $\cdot$ G, viene codificata e compressa in un punto di curva ellittica.
+\end{itemize}
+
+\subsubsection{Implementazione in python}
+
+In questo capitolo, verrà mostrata l'implementazione pratica della versione ed25519.
+
+\begin{lstlisting}
+	import ed25519
+	
+	privKey, pubKey = ed25519.create_keypair()
+\end{lstlisting}

@@ -103,3 +103,29 @@ msg = 'messaggio modificato'
 valid = verifyECDSAsecp256k1(msg, signature, pubKey) #ritorna false
 \end{lstlisting}
 
+\newpage
+
+\subsection{Recupero attraverso la chiave pubblica}
+
+Una caratteristica molto significativa di ECDSA è che, consente di recuperare la chiave pubblica a partire dal messaggio firmato, insieme alla firma. Le operazioni matematiche utili al recupero, sono indicate nello standard SECG: SEC1, in cui viene spiegato che, si ottengono fino a 2 punti di curva ellittica. Per ottenere un risultato più pulito e comprensibile, in determinate versioni dell'algoritmo, la firma assume la forma $\{r, s, v\}$ (prende il nome di firma estesa), ovvero viene aggiunto un bit $v$ durante il processo di firma. A partire dalla firma $\{r, s, v\}$, in coppia con il messaggio firmato, la chiave pubblica del firmatario può essere ripristinata. La non ambiguità garantita dalla firma estesa permetterà di avere una percentuale di successo pari al 100 $\%$ nell'operazione di recupero (a meno che si effettui tampering sulla chiave pubblica o messaggio). Il ripristino della firma è molto comune in ambito blockchain, quando non è possibile la trasmissione o archiviazione delle chiavi pubbliche, questo è dimostrato dal fatto che la famosa cryptovaluta ethereum sfrutta questa tecnica.
+
+\subsubsection{Implementazione in python - Firma estesa $\{r, s, v\}$}
+
+In questa sezione sarà possibile osservare l'implementazione in python del recupero della chiave pubblica, di una firma estesa. Per la dimostrazione è stato utilizzato il modulo python $eth_{keys}$, che fa parte del progetto di ethereum. 
+
+\begin{lstlisting}
+	import eth_keys, os
+	
+	#chiave pubblica e privata
+	signerPrivKey = eth_keys.keys.PrivateKey(os.urandom(32))
+	signerPubKey = signerPrivKey.public_key
+	
+	#firma
+	msg = b'Message for signing'
+	signature = signerPrivKey.sign_msg(msg)
+	
+	#firma, recupero e verifica validita'
+	msg = b'Message for signing'
+	recoveredPubKey = signature.recover_public_key_from_msg(msg)
+	valid = signerPubKey.verify_msg(msg, signature)
+\end{lstlisting}
