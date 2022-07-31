@@ -1,6 +1,6 @@
 \chapter{L'algoritmo ECDSA}
 
-Nonostante l'algoritmo DSA sia una soluzione solida nel campo delle firme digitale, con l'evoluzione tecnologica è stato possibile creare algoritmi, più semplici e performanti, sfruttando  ad esempio la crittografia basata curve ellittiche. Al giorno d'oggi è preferibile una soluzione che comprenda l'utilizzo delle curve ellittiche, in quanto comportano la creazione di chiavi e conseguentemente firme più corte, oltre a livelli di sicurezza più alti.
+Nonostante l'algoritmo DSA sia una soluzione solida nel campo delle firme digitali, con l'evoluzione tecnologica è stato possibile creare algoritmi, più semplici e performanti, sfruttando  ad esempio la crittografia basata sulle curve ellittiche. Al giorno d'oggi è preferibile una soluzione che comprenda l'utilizzo delle curve ellittiche, in quanto comportano la creazione di chiavi e conseguentemente firme, più corte, oltre a livelli di sicurezza più alti.
 
 \section{Funzionamento}
 
@@ -29,7 +29,7 @@ publicKey = (generator_secp256k1 * privateKey).pair()
 
 \subsection{Firma}
  
-La firma viene generata prendendo in input un messaggio $m$ ed una chiave privata $privateKey$, restituisce in output la firma $f$.
+La firma viene generata prendendo in input un messaggio $m$ ed una chiave privata $privateKey$, restituisce in output la firma $\{r, f\}$.
 
 \begin{center}
 	$f(m, privateKey) \rightarrow \{r, f\}$
@@ -40,19 +40,19 @@ Il funzionamento può essere semplificato attraverso i seguenti passaggi (si con
 	\item $h = hash(m)$  $\rightarrow$ come di consueto, il primo passaggio consiste nell'effettuare lo hashing del messaggio da firmare;
 	\item $k = random()$ $\rightarrow$ si prosegue con la generazione di un valore casuale k, a meno che si consideri di sfruttare implementazioni alternative, è importante che non sia deterministico, in quanto potrebbe portare a delle vulnerabilità;
 	\item $R = k * G; r = R.x $ $\rightarrow$ successivamente si calcola r, ovvero il primo elemento della coppia che formerà la firma;
-	\item $f = k^{-1} \cdot (h + (r \cdot privateKey)) (mod n)$ $\rightarrow$ infine, si calcola la signature proof, ovvero la prova di firma.
+	\item $f = k^{-1} \cdot (h + (r \cdot privateKey)) \: (mod \: n)$ $\rightarrow$ infine, si calcola la signature proof, ovvero la prova di firma.
 \end{itemize}
 
 Terminati questi passaggi si otterrà la firma, che verrà ritornata come coppia $\{r, f\}$.
 
 \subsubsection{Dimostrazione teorica}
 
-Il processo di "firma della firma", codifica la coordinata $x$ di un punto random $R$ attraverso le trasformazioni di curve ellittiche. Dunque la chiave privata e il messaggio hashato permettono di ottenere f, che è stata già introdotta come la "prova di firma" (in inglese signature proof), che è la prova che il firmatario conosce la chiave privata. La firma $\{r, s\}$ non può rivelare la chiave privata per via della difficoltà del problema ECDLP.
+Il processo di "firma della firma", codifica la coordinata $x$ di un punto random $R$ attraverso le trasformazioni di curve ellittiche. Dunque la chiave privata e il messaggio hashato permettono di ottenere f, che è stata già introdotta come la "prova di firma" (in inglese signature proof), che è la prova che il firmatario conosce la chiave privata. La firma $\{r, f\}$ non può rivelare la chiave privata per via della difficoltà del problema ECDLP.
 
 \subsubsection{Implementazione in python}
 
 Il metodo sottostante permette di effettuare la firma dato un messaggio (in chiaro), della quale effettuerà lo hashing attraverso SHA3-256. 
-Il secondo argomento richiesto è la chiave privata secp256k1, che servirà a calcolare la firma $\{r, s\}$ come una coppia di interi di 256 bit. 
+Il secondo argomento richiesto è la chiave privata secp256k1, che servirà a calcolare la firma $\{r, f\}$ come una coppia di interi di 256 bit. 
 
 \begin{lstlisting}
 def signECDSAsecp256k1(msg, privKey):
@@ -70,7 +70,7 @@ signature = signECDSAsecp256k1(msg, privKey)
 
 \section{Verifica}
 
-Come di consueto, è necessario che la firma venga verificata, l'algoritmo richiede in input il messaggio firmato, la firma $\{r, s\}$ e la chiave pubblica (del firmatario). Una volta ottenuti, si effettua la verifica, che può dare esito positivo (firma verificata) o negativo (firma non verificata). Il funzionamento può essere semplificato attraverso i seguenti passaggi.
+Come di consueto, è necessario che la firma venga verificata, l'algoritmo richiede in input il messaggio firmato, la firma $\{r, f\}$ e la chiave pubblica (del firmatario). Una volta ottenuti, si effettua la verifica, che può dare esito positivo (firma verificata) o negativo (firma non verificata). Il funzionamento può essere semplificato attraverso i seguenti passaggi.
 
 \begin{itemize}
 	\item $hash = h(m)$ $\rightarrow$ il primo passaggio richiede lo hashing del messaggio, la funzione hash è la stessa utilizzata nella fase di firma;
@@ -85,7 +85,7 @@ Nella fase di verifica della firma, viene decodificato $f$, ottenendo il punto $
 
 \subsubsection{Implementazione in python}
 
-Il metodo sottostante prende in input un messaggio, una firma $\{r, s\}$ e infine una chiave pubblica a 256, in funzione di questi elementi verifica che la firma sia valida o meno. Importante notare che l'algoritmo di hashing è lo stesso utilizzato durante la fase di firma, condizione necessaria per il corretto funzionamento dell'algoritmo.
+Il metodo sottostante prende in input un messaggio, una firma $\{r, f\}$ e infine una chiave pubblica a 256, in funzione di questi elementi verifica che la firma sia valida o meno. Importante notare che l'algoritmo di hashing è lo stesso utilizzato durante la fase di firma, condizione necessaria per il corretto funzionamento dell'algoritmo.
 
 \begin{lstlisting}
 def verifyECDSAsecp256k1(msg, signature, pubKey):
@@ -107,9 +107,9 @@ valid = verifyECDSAsecp256k1(msg, signature, pubKey) #ritorna false
 
 \subsection{Recupero attraverso la chiave pubblica}
 
-Una caratteristica molto significativa di ECDSA è che, consente di recuperare la chiave pubblica a partire dal messaggio firmato, insieme alla firma. Le operazioni matematiche utili al recupero, sono indicate nello standard SECG: SEC1, in cui viene spiegato che, si ottengono fino a 2 punti di curva ellittica. Per ottenere un risultato più pulito e comprensibile, in determinate versioni dell'algoritmo, la firma assume la forma $\{r, s, v\}$ (prende il nome di firma estesa), ovvero viene aggiunto un bit $v$ durante il processo di firma. A partire dalla firma $\{r, s, v\}$, in coppia con il messaggio firmato, la chiave pubblica del firmatario può essere ripristinata. La non ambiguità garantita dalla firma estesa permetterà di avere una percentuale di successo pari al 100 $\%$ nell'operazione di recupero (a meno che si effettui tampering sulla chiave pubblica o messaggio). Il ripristino della firma è molto comune in ambito blockchain, quando non è possibile la trasmissione o archiviazione delle chiavi pubbliche, questo è dimostrato dal fatto che la famosa cryptovaluta ethereum sfrutta questa tecnica.
+Una caratteristica molto significativa di ECDSA è che, consente di recuperare la chiave pubblica a partire dal messaggio firmato, insieme alla firma. Le operazioni matematiche utili al recupero, sono indicate nello standard SECG: SEC1, in cui viene spiegato che, si ottengono fino a 2 punti di curva ellittica. Per ottenere un risultato più pulito e comprensibile, in determinate versioni dell'algoritmo, la firma assume la forma $\{r, f, v\}$ (prende il nome di firma estesa), ovvero viene aggiunto un bit $v$ durante il processo di firma. A partire dalla firma $\{r, f, v\}$, in coppia con il messaggio firmato, la chiave pubblica del firmatario può essere ripristinata. La non ambiguità garantita dalla firma estesa permetterà di avere una percentuale di successo pari al 100 $\%$ nell'operazione di recupero (a meno che si effettui tampering sulla chiave pubblica o messaggio). Il ripristino della firma è molto comune in ambito blockchain, quando non è possibile la trasmissione o archiviazione delle chiavi pubbliche, questo è dimostrato dal fatto che la famosa cryptovaluta ethereum sfrutta questa tecnica.
 
-\subsubsection{Implementazione in python - Firma estesa $\{r, s, v\}$}
+\subsubsection{Implementazione in python - Firma estesa $\{r, f, v\}$}
 
 In questa sezione sarà possibile osservare l'implementazione in python del recupero della chiave pubblica, di una firma estesa. Per la dimostrazione è stato utilizzato il modulo python $eth_{keys}$, che fa parte del progetto di ethereum. 
 
