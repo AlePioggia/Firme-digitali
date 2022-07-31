@@ -1,0 +1,36 @@
+\chapter{Identità digitale}
+
+Nei capitoli precedenti si è discusso dell'importanza e del livello di sicurezza garantiti dalla firma digitale. Considerando che, il certificato digitale lega l'identità di una persona, ad una chiave pubblica... di conseguenza è molto importante che il riconoscimento venga effettuato in maniera impeccabile, per evitare eventuali furti d'identità.
+
+\subsubsection{Definizione}
+
+L'identità digitale è l'insieme delle risorse digitali associate in maniera univoca ad una persona fisica che la identifica, rappresentandone la volontà, durante le sue attività digitali.
+
+\section{SPID}
+
+Il più noto ed efficace sistema italiano che cura l'identità digitale è lo SPID, il quale permette, in seguito all'autenticazione, di accedere direttamente ai servizi della pubblica amministrazione. Si tratta di una tecnologia particolarmente efficace, anche in ambito di sicurezza. 
+Ho deciso di introdurre lo SPID perché, dal 23 marzo 2020 è possibile firmare digitalmente. Il servizio di firma con SPID comprende due attori:
+\begin{itemize}
+	\item Identity Provider;
+	\item Service Provider.
+\end{itemize} 
+
+\subsection{Identity provider}
+
+Un identity provider è un servizio che, come scopo principale, crea, mantiene e gestisce dati legati all'identità di persone fisiche. La tecnologia inoltre, offre un servizio di autenticazione, in particolare, una applicazione che può fruirne, affida il processo di identificazione al provider (quindi è a tutti gli effetti un thrusted third party). Le caratteristiche citate sono decisamente funzionali nei confronti della firma digitale, in quanto offrono un grado di sicurezza non indifferente, nella fase di identificazione dell'individuo. Il provider può effettuare il riconoscimento nel modo che ritiene più opportuno, sia attraverso un operatore fisico che sfruttando un algoritmo di riconoscimento. E' importante ricordare però che, il GDPR consente alla persona fisica di decidere se ricevere o meno un trattamento dei propri dati completamente automatizzato, di conseguenza, se la persona fisica non si fida dell'algoritmo ha diritto di effettuare la verifica con un essere umano.
+
+\subsection{Service provider} 
+
+I service provider privati SPID sono le aziende che hanno deciso di adottare SPID per identificare i clienti e utenti dei loro servizi digitali. Le imprese ed i cittadini che usano SPID nel loro rapporto con le pubbliche amministrazioni sono esenti dall’obbligo di conservazione dei documenti informatici che da queste ricevono.
+
+\subsection{Procedimento}
+
+Il processo di firma, attraverso SPID, deve seguire una procedura standard, emanata da AgI (agenzia per l'identità italiana), in conformità all’art. 20 del CAD.
+
+\begin{itemize}
+	\item il soggetto preme "firma con spid", un pulsante presente nelle applicazioni web, che è necessario includere se si sfrutta SPID come sistema di riconoscimento;
+	\item conseguentemente, il service provider (ad esempio le poste italiane), invia il documento, con il proprio sigillo all'identity service provider, per verificare l'identità del firmatario;
+	\item l'identity service provider, se l'autenticazione è andata a buon fine, appone il sigillo e restituisce il documento al service provider;
+	\item infine, il service provider consegna al firmatario il documento firmato.
+\end{itemize}
+

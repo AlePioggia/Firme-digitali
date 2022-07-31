@@ -20,3 +20,61 @@ In questo capitolo, verrà mostrata l'implementazione pratica della versione ed2
 	
 	privKey, pubKey = ed25519.create_keypair()
 \end{lstlisting}
+
+\section{Generazione della firma}
+
+La firma viene generata a partire da un messaggio di testo e dalla chiave privata del firmatario, producendo in output la firma, composta dalla coppia di interi $\{R, s\}$.
+\begin{center}
+	$f(msg, privateKey) \rightarrow \{R, s\}$
+\end{center}
+I passaggi da seguire per la corretta generazione della firma sono i seguenti:
+
+Deterministically generate a secret integer r = hash(hash(privKey) + msg) mod q (this is a bit simplified
+
+\begin{itemize}
+	\item $r = hash(hash(privateKey) + msg) mod q$ $\rightarrow$ al primo passaggio viene generato l'intero $r$, che rappresenterà l'input del prossimo passaggio;
+	\item $R = r * G$ $\rightarrow$ successivamente calcolo $R$ (il punto in cui si trova la chiave pubblica), primo valore della coppia che costituisce la firma, moltiplicando $r$ per il punto generatore $G$; 
+	\item $h = hash(R + pubKey + msg) mod q$ $\rightarrow$ a questo punto si calcola l'hash a partire da $R$, chiave pubblica e messaggio;
+	\item $s = (r + h * privKey) mod q$ $\rightarrow$ infine viene calcolato $s$.
+\end{itemize}
+
+Al termine di questi passaggi è possibile ritornare la firma $\{R, s\}$.
+
+\subsubsection{Implementazione in python}
+
+La coppia di chiavi del Ed25519 è generato in maniera random, prima viene creato un seme di 32 byte, dalla quale viene creata una chiave privata. Dalla chiave privata poi viene generata quella pubblica, lo hash sfruttato è lo SHA-512.
+
+\begin{lstlisting}
+msg = 'messaggio di prova'
+signature = privKey.sign(msg, encoding='hex')
+\end{lstlisting}
+
+\section{Verifica}
+
+La verifica della firma richiede in input un messaggio di testo, la coppia di chiavi del firmatario e produce in output un valore booleano, che se vero ne dimostra la validità. 
+
+La verifica si effettua nei seguenti passaggi:
+
+\begin{itemize}
+	\item $h = hash(R + pubKey + msg) mod q$ $\rightarrow$ calcolo dello hash, similmente a quello ottenuto nella fase di firma;
+	\item $P_1 = s \cdot G$ $\rightarrow$;
+	\item $P_2 = R + (h \cdot privateKey)$;
+\end{itemize}
+
+Se $P_1$ risulta uguale a $P_2$ la verifica della firma è andata a buon fine.
+Questo perché durante la firma, abbiamo $s = (r + h \cdot privateKey) \: mod \: q$ e sostituendo s nell'equazione di $P_1$ si ottiene:
+\begin{center}
+	$P1 = s \cdot G = (r + h \cdot privateKey) mod q \cdot G = r \cdot G + h \cdot privKey \cdot G = R + h \cdot pubKey$
+\end{center}
+
+Quanto sopra è esattamente l'altro punto $P_2$, se i punti $P_1$ e $P_2$ sono lo stesso punto di curva ellittica, ciò dimostra che il punto $P_1$, calcolato dalla chiave privata, corrisponde al punto $P_2$, creato dalla sua corrispondente chiave pubblica.
+
+\subsubsection{Implementazione in python}
+
+\begin{lstlisting}
+	try:
+		pubKey.verify(signature, msg, encoding='hex')
+		print("The signature is valid.")
+	except:
+		print("Invalid signature!")
+\end{lstlisting}

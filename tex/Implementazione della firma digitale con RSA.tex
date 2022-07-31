@@ -14,7 +14,7 @@ Cita:
 
 \section{Generazione delle chiavi}
 
-L'algoritmo RSA è in grado di generare una coppia di chiavi delle dimensioni di 1024, 2048... fino a 16384 (supporta in realtà anche chiavi di dimensione più grande, però la performance diventa troppo scarsa per un eventuale uso pratico). La coppia di chiavi è formata da una chiave:
+L'algoritmo RSA è in grado di generare una coppia di chiavi delle dimensioni di 1024, 2048... fino a 16384 bit (supporta in realtà anche chiavi di dimensione più grande, però la performance diventa troppo scarsa per un eventuale uso pratico). La coppia di chiavi è formata da una chiave:
 \begin{itemize}
 	\item pubblica $\{n, e\}$;
 	\item privata $\{n, d\}$
@@ -42,9 +42,9 @@ Attraverso il metodo generate, fornito dalla libreria pycryptodome, si è in gra
 In seguito alla generazione delle chiavi RSA, si procede con la firma di un messaggio arbitrario sfruttando la chiave privata. La porzione di codice sottostante esegue i seguenti passaggi (considerando la chiave privata di esponente d):
 \begin{itemize}
 	\item $h(m)$ $\rightarrow$ hashing del messaggio, sfruttando l'algoritmo SHA-512;
-	\item $f = h^d (mod n)$ $\rightarrow$ generazione della firma, attraverso la chiave privata ottenuta precedentemente e creazione del crittogramma, che servirà poi al destinatario per effettuare la verifica.
+	\item $f = h^d (mod \: n)$ $\rightarrow$ generazione della firma, attraverso la chiave privata ottenuta precedentemente e creazione del crittogramma, che servirà poi al destinatario per effettuare la verifica.
 \end{itemize}
-Importante notare che, dovendo rientrare nel range imposto dalla proprietà vista precedentemente, la firma ottenuta $(f)$ è un intero la cui dimensione è rappresentata dall'intervallo $[0,..n)$
+Importante notare che, dovendo rientrare nel range imposto dalla proprietà vista precedentemente, la firma ottenuta $(f)$ sia un intero la cui dimensione sia rappresentata dall'intervallo $[0,..n)$
 
 \begin{lstlisting}
 	#funzione che esegue lo hash del messaggio
@@ -64,7 +64,7 @@ Importante notare che, dovendo rientrare nel range imposto dalla proprietà vist
 
 \section{Verifica della firma}
 
-In questa fase si effettua la verifica della firma, dunque viene effettuata la decrittazione attraverso la chiave pubblica e comparando lo hash della firma con quello del messaggio originale.
+In questa fase si effettua la verifica della firma, dunque viene eseguita la decrittazione attraverso la chiave pubblica e comparando lo hash della firma con quello del messaggio originale.
 Per verificare dunque, una firma $f$, per un messaggio $m$, con la chiave pubblica di esponente $e$ è necessario:
 \begin{itemize}
 	\item $h(m) \rightarrow$ calcolare lo hash del messaggio;
